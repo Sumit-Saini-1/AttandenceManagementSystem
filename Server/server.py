@@ -1,31 +1,13 @@
 from flask import Flask, request, jsonify
 import mysql.connector as sql
 from flask_cors import CORS,cross_origin
+from db import db
+from user import User
+from AttendanceManager import AttendanceManager
 
 app = Flask(__name__)
 CORS(app)
 
-db = sql.connect(
-    host="localhost",
-    user="root",
-    password="",
-    database='AttendenceManagement'
-)
-
-cursor = db.cursor()
-cursor.execute("CREATE TABLE IF NOT EXISTS attendancedata (id INT AUTO_INCREMENT PRIMARY KEY, eventname VARCHAR(100), date VARCHAR(100), time VARCHAR(15), attendeename VARCHAR(50), status VARCHAR(20));")
-
-class AttendanceManager:
-    def createEntry(self, event, date, time, attendee, status):
-        query = "INSERT INTO attendancedata (eventname, date, time, attendeename, status) VALUES (%s, %s, %s, %s, %s)"
-        values = (event, date, time, attendee, status)
-        cursor.execute(query, values)
-        db.commit()
-
-    def showData(self):
-        cursor.execute("SELECT * FROM attendancedata")
-        data = cursor.fetchall()
-        return data
 
 @app.route('/create', methods=['POST'])
 @cross_origin(origins=[u"*"])
@@ -46,6 +28,42 @@ def show_data():
     am = AttendanceManager()
     data = am.showData()
     return jsonify({'data': data}), 200
+
+
+@app.route('/login', methods=['POST'])
+def login():
+    data = request.get_json()
+    email = data.get('email')
+    password = data.get('password')
+
+    if not email or not password:
+        return jsonify({'message': 'Email and password are required!'}), 400
+
+    user = User.get_user(email)
+    if user and user['password'] == password:
+        return jsonify({'message': 'Login successful!', 'user': user}), 200
+    else:
+        return jsonify({'message': 'Invalid email or password!'}), 401
+
+@app.route('/signup', methods=['POST'])
+def signup():
+    data = request.get_json()
+    username = data.get('username')
+    email = data.get('email')
+    password = data.get('password')
+
+    if not username or not email or not password:
+        return jsonify({'message': 'All fields are required!'}), 400
+
+    # Check if the user already exists
+    if User.get_user(email):
+        return jsonify({'message': 'User already exists!'}), 409
+
+    # Create a new user
+    User.create_user(username, email, password)
+    return jsonify({'message': 'User created successfully!'}), 201
+
+
 
 if __name__ == '__main__':
     app.run(debug=True)
