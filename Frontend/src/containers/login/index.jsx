@@ -3,9 +3,9 @@ import Input from "../../components/input";
 import Button from "../../components/Button/index";
 import Style from "./style.module.css";
 import { Link, useNavigate } from "react-router-dom";
-// import { LoginApi } from "../../../ReuestsToServer/User";
 import { setUser, login } from '../../states/reducers/authReducer';
 import { useDispatch } from "react-redux";
+import { LoginApi } from "../../../ApiRequests/auth";
 
 export default function Login() {
     const dispatch = useDispatch();
@@ -29,19 +29,19 @@ export default function Login() {
             alert("Enter password");
             return;
         }
-        // LoginApi(email, password).then(res => {
-        //     if (res.status == 200) {
-        //         dispatch(setUser(res.message));
-        //         window.sessionStorage.setItem("user", JSON.stringify(res.message));
-        //         dispatch(login());
-        //         navigate("/");
-        //     }
-        //     else {
-        //         setErrormsg(res.message);
-        //     }
-        // }).catch(err => {
-        //     console.log(err.message);
-        // });
+        LoginApi(email, password).then(res => {
+            if (res) {
+                dispatch(setUser(res));
+                window.sessionStorage.setItem("user", JSON.stringify(res));
+                dispatch(login());
+                navigate("/");
+            }
+            else {
+                setErrormsg(res);
+            }
+        }).catch(err => {
+            console.log(err.message);
+        });
     }
 
     return (

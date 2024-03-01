@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react';
 import './App.css';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import Table from './components/table';
+import DataTable from './components/DataTable';
+import Header from './components/Header';
 
 function App() {
-  const [authChecking, setAuthChecking] = useState(false);
+  const [authChecking, setAuthChecking] = useState(true);
   
   const auth = useSelector((state) => state.auth.value);
+  const navigate = useNavigate();
   const dispatch = useDispatch();
 
   useEffect(function () {
@@ -15,6 +17,7 @@ function App() {
       setAuthChecking(false);
     }
     else {
+      navigate("/login")
       // checkIsLoggedIn();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -27,7 +30,8 @@ function App() {
         authChecking ? <div>loading..</div> :
           auth.isloggedIn ?
             <div className='App'>
-              <Table/>
+              <Header/>
+              <DataTable/>
             </div>
             :
             <Navigate to={"/login"} />
