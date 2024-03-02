@@ -2,7 +2,7 @@ import { SERVER_URL,getToken } from "./global";
 
 export function GetAttandeceData(){
     return new Promise((resolve, reject) => {
-        fetch(SERVER_URL+"/show",{
+        fetch(SERVER_URL+"/attendance",{
             method:"GET",
             headers:{
                 "Content-Type": "application/json",

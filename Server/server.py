@@ -1,10 +1,9 @@
 from flask import Flask, request, jsonify
 import mysql.connector as sql
 from flask_cors import CORS,cross_origin
-# from db import db
 from user import User
 from AttendanceManager import AttendanceManager
-import jwt 
+from JWTToken import encodeData,decodeData
 
 app = Flask(__name__)
 CORS(app)
@@ -16,56 +15,6 @@ header = {
   
 secret = "temporary"  
 
-@app.route('/attendance', methods=['POST'])
-@cross_origin(origins=[u"*"])
-def create_entry():
-    token = request.headers.get("authorization")
-    if token==None or token=="":
-        return jsonify({"err":"unauthorised access"}),401
-    try:
-        auth = jwt.decode(token, secret, algorithms=['HS256']) 
-
-        request_data = request.get_json()
-        event = request_data['event']
-        date = request_data['date']
-        time = request_data['time']
-        attendee = request_data['attendee']
-        status = request_data['status']
-        am = AttendanceManager()
-        am.createEntry(event, date, time, attendee, status,auth['email'])
-        return jsonify({'message': 'Entry created successfully'}), 200
-    except Exception as e:
-        return jsonify(e),500
-
-@app.route('/show', methods=['GET'])
-@cross_origin(origins=[u"*"])
-def show_data():
-    am = AttendanceManager()
-    data = am.showData()
-    return jsonify({'data': data}), 200
-
-
-@app.route('/login', methods=['POST'])
-@cross_origin(origins=[u"*"])
-def login():
-    data = request.get_json()
-    email = data.get('email')
-    password = data.get('password')
-
-    print(email,password)
-    if not email or not password:
-        return jsonify({'message': 'Email and password are required!'}), 400
-
-    user = User.get_user(email)
-    if user and user['password'] == password:
-        payload = {
-            'username':user['username'],
-            'email':user['email']
-        }  
-        token=jwt.encode(payload,secret,algorithm='HS256', headers=header)
-        return jsonify({'message': 'Login successful!', 'token': token}), 200
-    else:
-        return jsonify({'message': 'Invalid email or password!'}), 401
 
 @app.route('/signup', methods=['POST'])
 @cross_origin(origins=[u"*"])
@@ -87,6 +36,89 @@ def signup():
     User.create_user(username, email, password)
     return jsonify({'message': 'User created successfully!'}), 201
 
+
+@app.route('/login', methods=['POST'])
+@cross_origin(origins=[u"*"])
+def login():
+    data = request.get_json()
+    email = data.get('email')
+    password = data.get('password')
+
+    print(email,password)
+    if not email or not password:
+        return jsonify({'message': 'Email and password are required!'}), 400
+
+    user = User.get_user(email)
+    if user and user['password'] == password: 
+        token=encodeData(user['username'],user['email'])
+        return jsonify({'message': 'Login successful!', 'token': token}), 200
+    else:
+        return jsonify({'message': 'Invalid email or password!'}), 401
+
+
+@app.route('/attendance', methods=['POST','GET','DELETE','PUT'])
+@cross_origin(origins=[u"*"])
+def attendance():
+    token = request.headers.get("authorization")
+    if token==None or token=="":
+        return jsonify({"err":"unauthorised access"}),401
+    
+    match request.method:
+        case 'GET':
+            am = AttendanceManager()
+            data = am.showData()
+            return jsonify({'data': data}), 200
+        
+        case 'POST':
+            
+            
+            try:
+                auth = decodeData(token)
+                request_data = request.get_json()
+                event = request_data['event']
+                date = request_data['date']
+                time = request_data['time']
+                attendee = request_data['attendee']
+                status = request_data['status']
+                am = AttendanceManager()
+                am.createEntry(event, date, time, attendee, status,auth['email'])
+                return jsonify({'message': 'Entry created successfully'}), 200
+            except Exception as e:
+                return jsonify(e),500
+            
+        case 'DELETE':
+            try:
+                auth = decodeData(token)
+                request_data = request.get_json()
+                rowid = request_data['id']
+                am = AttendanceManager()
+                deleted=am.deleteEntry(rowid,auth['email'])
+                if deleted:
+                    return jsonify({'message': 'Entry deleted successfully'}), 200
+                else:
+                    return jsonify({'message':'Something wrong'}),500
+            except Exception as e:
+                return jsonify(e),500
+            
+        case 'PUT':
+            try:
+                auth = decodeData(token)
+                request_data = request.get_json()
+                rowid = request_data['id']
+                event = request_data['event']
+                date = request_data['date']
+                time = request_data['time']
+                attendee = request_data['attendee']
+                status = request_data['status']
+                am = AttendanceManager()
+                updated=am.updateEntry(rowid,event,date,time,attendee,status,auth['email'])
+                if updated:
+                    return jsonify({'message': 'Entry deleted successfully'}), 200
+                else:
+                    return jsonify({'message':'Something wrong'}),500
+            except Exception as e:
+                return jsonify(e),500
+    
 
 
 if __name__ == '__main__':

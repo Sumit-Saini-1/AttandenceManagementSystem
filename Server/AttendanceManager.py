@@ -13,8 +13,60 @@ class AttendanceManager:
     def showData(self):
         cursor.execute("SELECT * FROM attendancedata")
         cols=[x[0] for x in cursor.description]
-        # print(cols)
         data = cursor.fetchall()
         ad=[dict(zip(cols,r)) for r in data]
-        # user = dict(zip(cols,data))
         return ad
+    
+    def getEntry(self,id):
+        query="SELECT * FROM attendancedata WHERE id=%s"
+        values=(id,)
+        cursor.execute(query,values)
+        cols=[x[0] for x in cursor.description]
+        data=cursor.fetchone()
+        return dict(zip(cols,data))
+
+    def deleteEntry(self,id,deleteby):
+        flag=False
+        if deleteby=='admin':
+            flag=True
+        else:
+            row=self.getEntry(id)
+            if row['entryby']==deleteby:
+                flag=True
+        
+        if flag:
+            query="DELETE FROM attendancedata WHERE id=%s"
+            values=(id,)
+            try:
+                cursor.execute(query,values)
+                db.commit()
+                return True
+            except Exception as err:
+                print(err)
+                return False
+        else:
+            return False
+    
+    def updateEntry(self,id, event, date, time, attendee, status,updateby):
+        flag=False
+        if updateby=='admin':
+            flag=True
+        else:
+            row=self.getEntry(id)
+            if row['entryby']==updateby:
+                flag=True
+        
+        if flag:
+            query = "UPDATE attendancedata SET eventname=%s, date=%s, time=%s, attendeename=%s, status=%s WHERE id=%s"
+            values = (event, date, time, attendee, status,id)
+            try:
+                cursor.execute(query, values)
+                db.commit()
+                return True
+            except Exception as err:
+                print(err)
+                return False
+        else:
+            return False
+        
+        
