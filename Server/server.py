@@ -51,10 +51,24 @@ def login():
     user = User.get_user(email)
     if user and user['password'] == password: 
         token=encodeData(user['username'],user['email'])
-        return jsonify({'message': 'Login successful!', 'token': token}), 200
+        return jsonify({'message': 'Login successful!', 'token': token,'email':email}), 200
     else:
         return jsonify({'message': 'Invalid email or password!'}), 401
 
+@app.route('/checkauthenticate',methods=['POST'])
+@cross_origin(origins=[u"*"])
+def checkAuthentication():
+    data = request.get_json()
+    token=data.get('token')
+    if token==None or token=="":
+        return jsonify({"err":"unauthorised access"}),401
+    
+    auth = decodeData(token)
+    if auth['email']:
+        return jsonify({'auth':True}),200
+    else:
+        return jsonify({'auth':False}),401
+            
 
 @app.route('/attendance', methods=['POST','GET','DELETE','PUT'])
 @cross_origin(origins=[u"*"])
@@ -70,8 +84,6 @@ def attendance():
             return jsonify({'data': data}), 200
         
         case 'POST':
-            
-            
             try:
                 auth = decodeData(token)
                 request_data = request.get_json()
